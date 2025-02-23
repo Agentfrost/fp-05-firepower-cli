@@ -1,0 +1,4 @@
+six
+cryptography
+requests
+pyOpenSSL
