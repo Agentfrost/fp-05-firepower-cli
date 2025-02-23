@@ -1,0 +1,9 @@
+.venv/
+estreamer.conf
+changes.md
+*.pkcs12
+*.log
+*.pid
+*.cert
+*.key
+*.dat
