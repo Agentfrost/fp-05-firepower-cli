@@ -81,17 +81,17 @@ init() {
     ps ax | grep -F -- $pid | grep -v 'grep' > /dev/null 2>&1
     process=$?
 
-    if [ $pid = '-1' ]
+    if [ "$pid" = '-1' ]
     then
         : #echo "Checking pid.... none found."
 
-    elif [ $process -eq 1 ]
+    elif [ "$process" -eq 1 ]
     then
         # echo "Stale pidFile ($pid). Removing"
         rm $pidFile
         pid=-1
 
-    elif [ $process -eq 0 ]
+    elif [ "$process" -eq 0 ]
     then
         # echo "$service ($pid) is running."
         isRunning=1
@@ -108,7 +108,7 @@ foreground() {
 }
 
 start() {
-    if [ $isRunning -eq 0 ]
+    if [ "$isRunning" -eq 0 ]
     then
         echo -n "Starting \"$service\". "
         $service > /dev/null 2>&1 &
@@ -124,7 +124,7 @@ start() {
 }
 
 stop() {
-    if [ $isRunning -eq 0 ]
+    if [ "$isRunning" -eq 0 ]
     then
         echo "Not running"
 
@@ -139,7 +139,7 @@ stop() {
             ps ax | grep -F -- $pid | grep -v 'grep' > /dev/null #2>&1
             process=$?
 
-            if [ $process -eq 1 ]
+            if [ "$process" -eq 1 ]
             then
                 break
             fi
@@ -166,6 +166,26 @@ archive() {
 restart() {
     stop
     start
+}
+
+add_service() {
+    sudo echo -e \
+    " [Unit]\n" \
+    "Description=The Cisco Security Cloud application offers a seamless integration experience for connecting your Cisco devices with Splunk, providing a rich and uniform interface. The application is equipped with detailed instructions to facilitate every step of the setup process and assists with monitoring to ensure that your data pipelines maintain their operational integrity\n" \
+    "[Service]\n" \
+    "WorkingDirectory=$(pwd)\n" \
+    "Type=exec\n" \
+    "User=$(whoami)\n" \
+    "Group=$(whoami)\n" \
+    "ExecStart=/bin/bash encore.sh foreground\n" \
+    "[Install]\n" \
+    "WantedBy=multi-user.target\n" > /tmp/cisco-encore.service
+    sudo cp /tmp/cisco-encore.service /etc/systemd/system/cisco-encore.service
+    rm -rf /tmp/cisco-encore.service
+}
+
+remove_service() {
+    sudo rm -rf /etc/systemd/system/cisco-encore.service
 }
 
 main() {
@@ -198,8 +218,20 @@ main() {
             setup
             ;;
 
+        add-service)
+            add_service
+            ;;
+
+        restart-service)
+            restart_service
+            ;;
+
+        remove-service)
+            remove_service
+            ;;
+
         *)
-            echo $"Usage: $prog {start | stop | restart | foreground | test | setup}"
+            echo $"Usage: $prog {start | stop | restart | foreground | test | setup | add-service | remove-service}"
             echo
             echo '    start:      starts eNcore as a background task'
             echo '    stop:       stop the eNcore background task'
@@ -207,6 +239,8 @@ main() {
             echo '    foreground: runs eNcore in the foreground'
             echo '    test:       runs a quick test to check connectivity'
             echo '    setup:      change the output (splunk | cef | json)'
+            echo '    add-service:      add eNcore as a system service'
+            echo '    remove-service:      remove eNcore system service'
             echo
             echo $1
             exit $EXIT_CODE_ERROR
